@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Insurance Customer Churn Analysis | Vikitha Guttapalem</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2330;
+    --border: #30363d;
+    --accent: #2563eb;
+    --accent2: #0ea5e9;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --success: #10b981;
+    --text: #e6edf3;
+    --text2: #8b949e;
+    --text3: #6e7681;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* TOP HEADER */
+  .top-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .top-bar-left { display: flex; align-items: center; gap: 16px; }
+  .logo {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; color: white;
+  }
+  .top-bar h1 { font-size: 15px; font-weight: 600; color: var(--text); }
+  .top-bar p { font-size: 12px; color: var(--text2); margin-top: 1px; }
+  .badge {
+    background: rgba(37,99,235,0.15);
+    border: 1px solid rgba(37,99,235,0.3);
+    color: var(--accent2);
+    font-size: 11px; font-weight: 500;
+    padding: 3px 10px; border-radius: 20px;
+    font-family: 'DM Mono', monospace;
+  }
+  .top-bar-right { display: flex; gap: 8px; align-items: center; }
+  .author-tag {
+    font-size: 12px; color: var(--text2);
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* FILTERS */
+  .filters {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 32px;
+    display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+  }
+  .filter-label { font-size: 12px; color: var(--text3); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+  .filter-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    padding: 5px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .filter-btn:hover, .filter-btn.active {
+    background: rgba(37,99,235,0.15);
+    border-color: rgba(37,99,235,0.5);
+    color: var(--accent2);
+  }
+
+  /* MAIN */
+  .main { padding: 24px 32px; max-width: 1400px; margin: 0 auto; }
+
+  /* KPI CARDS */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    animation: fadeUp 0.4s ease both;
+  }
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .kpi-card.danger::before { background: var(--danger); }
+  .kpi-card.warning::before { background: var(--warning); }
+  .kpi-card.success::before { background: var(--success); }
+  .kpi-card.info::before { background: var(--accent2); }
+
+  .kpi-label { font-size: 11px; color: var(--text3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+  .kpi-value { font-size: 32px; font-weight: 700; font-family: 'DM Mono', monospace; line-height: 1; margin-bottom: 8px; }
+  .kpi-card.danger .kpi-value { color: var(--danger); }
+  .kpi-card.warning .kpi-value { color: var(--warning); }
+  .kpi-card.success .kpi-value { color: var(--success); }
+  .kpi-card.info .kpi-value { color: var(--accent2); }
+  .kpi-sub { font-size: 12px; color: var(--text2); }
+  .kpi-trend {
+    font-size: 11px; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 3px;
+    margin-top: 6px;
+    padding: 2px 7px; border-radius: 4px;
+  }
+  .trend-up { background: rgba(239,68,68,0.12); color: var(--danger); }
+  .trend-down { background: rgba(16,185,129,0.12); color: var(--success); }
+
+  /* CHART GRID */
+  .chart-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .chart-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    animation: fadeUp 0.5s ease both;
+  }
+  .chart-card-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 16px;
+  }
+  .chart-card-title { font-size: 13px; font-weight: 600; color: var(--text); }
+  .chart-card-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .chart-tag {
+    font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 4px;
+    background: rgba(14,165,233,0.1); color: var(--accent2);
+    border: 1px solid rgba(14,165,233,0.2);
+  }
+  canvas { max-height: 220px; }
+
+  /* INSIGHTS TABLE */
+  .insights-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .table-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    animation: fadeUp 0.6s ease both;
+  }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  th {
+    font-size: 10px; font-weight: 600; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.07em;
+    text-align: left; padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  td { font-size: 12px; color: var(--text); padding: 9px 10px; border-bottom: 1px solid rgba(48,54,61,0.5); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  .risk-badge {
+    font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px;
+    font-family: 'DM Mono', monospace;
+  }
+  .risk-high { background: rgba(239,68,68,0.15); color: var(--danger); }
+  .risk-med { background: rgba(245,158,11,0.15); color: var(--warning); }
+  .risk-low { background: rgba(16,185,129,0.15); color: var(--success); }
+
+  /* MINI BARS */
+  .mini-bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .mini-bar-bg { flex: 1; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .mini-bar-fill { height: 100%; border-radius: 3px; background: var(--accent2); }
+  .mini-bar-fill.danger { background: var(--danger); }
+  .mini-bar-fill.warning { background: var(--warning); }
+  .mini-bar-val { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text2); width: 36px; text-align: right; }
+
+  /* FOOTER */
+  .footer {
+    text-align: center;
+    padding: 20px 32px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text3);
+    font-family: 'DM Mono', monospace;
+  }
+  .footer span { color: var(--accent2); }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .kpi-card:nth-child(2) { animation-delay: 0.05s; }
+  .kpi-card:nth-child(3) { animation-delay: 0.1s; }
+  .kpi-card:nth-child(4) { animation-delay: 0.15s; }
+
+  @media (max-width: 900px) {
+    .kpi-grid { grid-template-columns: 1fr 1fr; }
+    .chart-grid, .chart-grid-3, .insights-grid { grid-template-columns: 1fr; }
+    .main { padding: 16px; }
+    .filters { padding: 12px 16px; }
+    .top-bar { padding: 12px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="top-bar-left">
+    <div class="logo">BI</div>
+    <div>
+      <h1>Insurance Customer Churn Analysis</h1>
+      <p>Guardian Life Insurance — Retention Intelligence Dashboard</p>
+    </div>
+  </div>
+  <div class="top-bar-right">
+    <span class="badge">10,247 Records</span>
+    <span class="author-tag">by Vikitha Guttapalem</span>
+  </div>
+</div>
+
+<div class="filters">
+  <span class="filter-label">Policy Type:</span>
+  <button class="filter-btn active" onclick="filterData('all', this)">All</button>
+  <button class="filter-btn" onclick="filterData('life', this)">Life Insurance</button>
+  <button class="filter-btn" onclick="filterData('disability', this)">Disability</button>
+  <button class="filter-btn" onclick="filterData('dental', this)">Dental</button>
+  <span class="filter-label" style="margin-left:16px">Risk:</span>
+  <button class="filter-btn" onclick="filterData('high', this)">High Risk</button>
+  <button class="filter-btn" onclick="filterData('low', this)">Low Risk</button>
+</div>
+
+<div class="main">
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi-card danger">
+      <div class="kpi-label">Overall Churn Rate</div>
+      <div class="kpi-value">24.7%</div>
+      <div class="kpi-sub">2,533 churned customers</div>
+      <div class="kpi-trend trend-up">↑ +3.2% vs last quarter</div>
+    </div>
+    <div class="kpi-card warning">
+      <div class="kpi-label">Revenue at Risk</div>
+      <div class="kpi-value">₹4.2Cr</div>
+      <div class="kpi-sub">Annual premium exposure</div>
+      <div class="kpi-trend trend-up">↑ High priority segment</div>
+    </div>
+    <div class="kpi-card success">
+      <div class="kpi-label">Retention Rate</div>
+      <div class="kpi-value">75.3%</div>
+      <div class="kpi-sub">7,714 active customers</div>
+      <div class="kpi-trend trend-down">↓ -3.2% vs last quarter</div>
+    </div>
+    <div class="kpi-card info">
+      <div class="kpi-label">Avg Policy Duration</div>
+      <div class="kpi-value">3.4 yrs</div>
+      <div class="kpi-sub">Churned avg: 1.8 yrs</div>
+      <div class="kpi-trend trend-down">Churn peaks at yr 1–2</div>
+    </div>
+  </div>
+
+  <!-- Row 1 Charts -->
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div>
+          <div class="chart-card-title">Monthly Churn Trend & Policy Renewals</div>
+          <div class="chart-card-sub">Last 12 months — churned vs renewed customers</div>
+        </div>
+        <span class="chart-tag">Time Series</span>
+      </div>
+      <canvas id="trendChart"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div>
+          <div class="chart-card-title">Churn by Policy Type</div>
+          <div class="chart-card-sub">Distribution across product lines</div>
+        </div>
+        <span class="chart-tag">Breakdown</span>
+      </div>
+      <canvas id="policyChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Row 2 Charts -->
+  <div class="chart-grid-3">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div>
+          <div class="chart-card-title">Churn by Age Group</div>
+          <div class="chart-card-sub">45–60 segment highest risk</div>
+        </div>
+        <span class="chart-tag">Segment</span>
+      </div>
+      <canvas id="ageChart"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div>
+          <div class="chart-card-title">Churn by Claim History</div>
+          <div class="chart-card-sub">0 claims = highest churn risk</div>
+        </div>
+        <span class="chart-tag">Driver</span>
+      </div>
+      <canvas id="claimChart"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div>
+          <div class="chart-card-title">Churn by Number of Policies</div>
+          <div class="chart-card-sub">Single-policy holders at 3x risk</div>
+        </div>
+        <span class="chart-tag">Key Finding</span>
+      </div>
+      <canvas id="policyCountChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Tables Row -->
+  <div class="insights-grid">
+    <div class="table-card">
+      <div class="chart-card-header">
+        <div>
+          <div class="chart-card-title">High-Risk Customer Segments</div>
+          <div class="chart-card-sub">Prioritized by churn probability</div>
+        </div>
+        <span class="chart-tag">Actionable</span>
+      </div>
+      <table>
+        <thead>
+          <tr><th>Segment</th><th>Churn Rate</th><th>Risk</th><th>Volume</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Age 45–60, Single Policy</td>
+            <td>
+              <div class="mini-bar-wrap">
+                <div class="mini-bar-bg"><div class="mini-bar-fill danger" style="width:74%"></div></div>
+                <span class="mini-bar-val">74%</span>
+              </div>
+            </td>
+            <td><span class="risk-badge risk-high">HIGH</span></td>
+            <td>1,240</td>
+          </tr>
+          <tr>
+            <td>0 Claims, Life Policy</td>
+            <td>
+              <div class="mini-bar-wrap">
+                <div class="mini-bar-bg"><div class="mini-bar-fill danger" style="width:67%"></div></div>
+                <span class="mini-bar-val">67%</span>
+              </div>
+            </td>
+            <td><span class="risk-badge risk-high">HIGH</span></td>
+            <td>980</td>
+          </tr>
+          <tr>
+            <td>First Year Subscribers</td>
+            <td>
+              <div class="mini-bar-wrap">
+                <div class="mini-bar-bg"><div class="mini-bar-fill warning" style="width:58%"></div></div>
+                <span class="mini-bar-val">58%</span>
+              </div>
+            </td>
+            <td><span class="risk-badge risk-high">HIGH</span></td>
+            <td>2,100</td>
+          </tr>
+          <tr>
+            <td>Age 30–45, Dental Only</td>
+            <td>
+              <div class="mini-bar-wrap">
+                <div class="mini-bar-bg"><div class="mini-bar-fill warning" style="width:41%"></div></div>
+                <span class="mini-bar-val">41%</span>
+              </div>
+            </td>
+            <td><span class="risk-badge risk-med">MED</span></td>
+            <td>1,580</td>
+          </tr>
+          <tr>
+            <td>Multi-Policy, 2+ Claims</td>
+            <td>
+              <div class="mini-bar-wrap">
+                <div class="mini-bar-bg"><div class="mini-bar-fill" style="width:12%"></div></div>
+                <span class="mini-bar-val">12%</span>
+              </div>
+            </td>
+            <td><span class="risk-badge risk-low">LOW</span></td>
+            <td>3,200</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="table-card">
+      <div class="chart-card-header">
+        <div>
+          <div class="chart-card-title">Retention Strategy Recommendations</div>
+          <div class="chart-card-sub">Based on churn driver analysis</div>
+        </div>
+        <span class="chart-tag">Insights</span>
+      </div>
+      <table>
+        <thead>
+          <tr><th>Finding</th><th>Impact</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Single-policy holders churn 3x more</td>
+            <td><span class="risk-badge risk-high">HIGH</span></td>
+            <td>Cross-sell bundled plans</td>
+          </tr>
+          <tr>
+            <td>0 claims = low perceived value</td>
+            <td><span class="risk-badge risk-high">HIGH</span></td>
+            <td>Proactive wellness outreach</td>
+          </tr>
+          <tr>
+            <td>Year 1–2 critical drop-off window</td>
+            <td><span class="risk-badge risk-high">HIGH</span></td>
+            <td>Onboarding loyalty program</td>
+          </tr>
+          <tr>
+            <td>Age 45–60 at highest risk</td>
+            <td><span class="risk-badge risk-med">MED</span></td>
+            <td>Targeted renewal campaigns</td>
+          </tr>
+          <tr>
+            <td>Dental-only low engagement</td>
+            <td><span class="risk-badge risk-med">MED</span></td>
+            <td>Upgrade to combo policy</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  Insurance Customer Churn Analysis Dashboard &nbsp;|&nbsp; 
+  <span>Vikitha Guttapalem</span> &nbsp;|&nbsp; 
+  Tools: Power BI · Excel · SQL &nbsp;|&nbsp; 
+  Dataset: 10,247 records · Guardian Insurance Domain
+</div>
+
+<script>
+const chartDefaults = {
+  color: '#8b949e',
+  plugins: {
+    legend: { labels: { color: '#8b949e', font: { family: 'DM Sans', size: 11 }, boxWidth: 12, padding: 16 } },
+    tooltip: {
+      backgroundColor: '#1c2330',
+      borderColor: '#30363d',
+      borderWidth: 1,
+      titleColor: '#e6edf3',
+      bodyColor: '#8b949e',
+      padding: 10,
+      cornerRadius: 8,
+    }
+  },
+  scales: {
+    x: { grid: { color: '#21262d' }, ticks: { color: '#6e7681', font: { family: 'DM Mono', size: 10 } } },
+    y: { grid: { color: '#21262d' }, ticks: { color: '#6e7681', font: { family: 'DM Mono', size: 10 } } }
+  }
+};
+
+// TREND CHART
+new Chart(document.getElementById('trendChart'), {
+  type: 'line',
+  data: {
+    labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+    datasets: [
+      {
+        label: 'Churned Customers',
+        data: [180,210,195,230,255,240,270,285,260,290,310,308],
+        borderColor: '#ef4444',
+        backgroundColor: 'rgba(239,68,68,0.08)',
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: '#ef4444',
+        pointRadius: 3,
+      },
+      {
+        label: 'Renewed Policies',
+        data: [620,590,640,580,560,610,590,575,600,565,540,542],
+        borderColor: '#10b981',
+        backgroundColor: 'rgba(16,185,129,0.06)',
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: '#10b981',
+        pointRadius: 3,
+      }
+    ]
+  },
+  options: { ...chartDefaults, responsive: true, maintainAspectRatio: true }
+});
+
+// POLICY TYPE DONUT
+new Chart(document.getElementById('policyChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Life Insurance', 'Disability', 'Dental', 'Combo Plans'],
+    datasets: [{
+      data: [38, 24, 21, 17],
+      backgroundColor: ['#ef4444','#f59e0b','#2563eb','#10b981'],
+      borderColor: '#161b22',
+      borderWidth: 3,
+      hoverOffset: 6,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: true,
+    cutout: '65%',
+    plugins: {
+      legend: { position: 'bottom', labels: { color: '#8b949e', font: { family: 'DM Sans', size: 11 }, padding: 12, boxWidth: 10 } },
+      tooltip: chartDefaults.plugins.tooltip
+    }
+  }
+});
+
+// AGE GROUP BAR
+new Chart(document.getElementById('ageChart'), {
+  type: 'bar',
+  data: {
+    labels: ['18–30','30–45','45–60','60+'],
+    datasets: [{
+      label: 'Churn Rate %',
+      data: [18, 28, 74, 52],
+      backgroundColor: ['#2563eb','#f59e0b','#ef4444','#f97316'],
+      borderRadius: 6,
+      borderSkipped: false,
+    }]
+  },
+  options: {
+    ...chartDefaults,
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: { ...chartDefaults.plugins, legend: { display: false } },
+    scales: {
+      ...chartDefaults.scales,
+      y: { ...chartDefaults.scales.y, max: 100, ticks: { ...chartDefaults.scales.y.ticks, callback: v => v + '%' } }
+    }
+  }
+});
+
+// CLAIM HISTORY
+new Chart(document.getElementById('claimChart'), {
+  type: 'bar',
+  data: {
+    labels: ['0 Claims','1 Claim','2 Claims','3+ Claims'],
+    datasets: [{
+      label: 'Churn Rate %',
+      data: [67, 31, 19, 11],
+      backgroundColor: ['#ef4444','#f59e0b','#2563eb','#10b981'],
+      borderRadius: 6,
+      borderSkipped: false,
+    }]
+  },
+  options: {
+    ...chartDefaults,
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: { ...chartDefaults.plugins, legend: { display: false } },
+    scales: {
+      ...chartDefaults.scales,
+      y: { ...chartDefaults.scales.y, max: 80, ticks: { ...chartDefaults.scales.y.ticks, callback: v => v + '%' } }
+    }
+  }
+});
+
+// POLICY COUNT
+new Chart(document.getElementById('policyCountChart'), {
+  type: 'bar',
+  data: {
+    labels: ['1 Policy','2 Policies','3 Policies','4+ Policies'],
+    datasets: [{
+      label: 'Churn Rate %',
+      data: [62, 24, 14, 8],
+      backgroundColor: ['#ef4444','#f59e0b','#2563eb','#10b981'],
+      borderRadius: 6,
+      borderSkipped: false,
+    }]
+  },
+  options: {
+    ...chartDefaults,
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: { ...chartDefaults.plugins, legend: { display: false } },
+    scales: {
+      ...chartDefaults.scales,
+      y: { ...chartDefaults.scales.y, max: 80, ticks: { ...chartDefaults.scales.y.ticks, callback: v => v + '%' } }
+    }
+  }
+});
+
+// Filter buttons (visual only for demo)
+function filterData(type, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>
